@@ -94,7 +94,6 @@ func main() {
 	fmt.Printf("Files %v\n", files)
 
 	for _, filename := range files {
-		// content, err := ioutil.ReadFile("targets/dev/main.tf")
 		content, err := ioutil.ReadFile(filename)
 		checkError(err)
 
@@ -102,7 +101,7 @@ func main() {
 		checkError(err)
 
 		refs := findModuleReferencs(fileast)
-		// fmt.Printf("%s -> %s\n", filename, refs)
+		fmt.Printf("%s -> %s\n", filename, refs)
 
 		abs, err := filepath.Abs(filename)
 		checkError(err)
