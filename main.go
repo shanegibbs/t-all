@@ -8,8 +8,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/hashicorp/hcl"
+	// "github.com/hashicorp/hcl"
 	"github.com/hashicorp/hcl/hcl/ast"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/hashicorp/terraform/command"
+	"github.com/mitchellh/cli"
 )
 
 func containsKey(oi *ast.ObjectItem, name string) bool {
@@ -72,7 +76,7 @@ func checkError(err error) {
 	}
 }
 
-func main() {
+func findTfFiles() []string {
 	files := make([]string, 0)
 
 	err := filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
@@ -91,27 +95,61 @@ func main() {
 	})
 	checkError(err)
 
+	return files
+}
+
+func main() {
+	files := findTfFiles()
+
 	fmt.Printf("Files %v\n", files)
+
+	refmap := make(map[string]map[string]string)
 
 	for _, filename := range files {
 		content, err := ioutil.ReadFile(filename)
 		checkError(err)
 
+		log.Printf("Parsing %s", filename)
 		fileast, err := hcl.ParseBytes(content)
 		checkError(err)
 
-		refs := findModuleReferencs(fileast)
-		fmt.Printf("%s -> %s\n", filename, refs)
+		file, diags := hclsyntax.ParseConfig(content, filename, hcl.Pos{Line: 1, Column: 1})
+
+		// refs := findModuleReferencs(fileast)
+		refs := make(map[string]string)
+
+		// fmt.Printf("%s -> %s\n", filename, refs)
 
 		abs, err := filepath.Abs(filename)
 		checkError(err)
-		fmt.Printf("%s\n", abs)
+		// fmt.Printf("%s\n", abs)
 
 		repodir := filepath.Dir(abs)
-		fmt.Printf("%s\n", repodir)
+		// fmt.Printf("%s\n", repodir)
 
+		absrefs := make(map[string]string)
 		for k, v := range refs {
-			fmt.Printf("%s %s\n", k, filepath.Join(abs, v))
+			p := filepath.Join(abs, v)
+			absrefs[k] = p
 		}
+		refmap[repodir] = absrefs
 	}
+
+	fmt.Printf("File graph: %s\n", refmap)
+
+	ui := new(cli.MockUi)
+	plan := &command.PlanCommand{
+		Meta: command.Meta{
+			Ui: ui,
+		},
+	}
+
+	// os.Chdir("targets/dev")
+	// plan.Run([]string{})
+
+	// gohcl.Decode()
+	// gohcl.
+	// gohcl.DecodeBody()
+	// hclsimple.Decode()
+
 }

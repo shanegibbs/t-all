@@ -18,4 +18,4 @@ Sliding scale of
 * List all tf repos
 * Detect changes from master
 * Run plan/apply on all
-*
+* Minimal impact to others working on different parts of the code
