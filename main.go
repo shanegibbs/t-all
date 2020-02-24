@@ -6,14 +6,15 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strings"
 
 	// "github.com/hashicorp/hcl"
+	// "github.com/hashicorp/hcl/hcl/ast"
+	// "github.com/hashicorp/hcl/hcl/ast"
 	"github.com/hashicorp/hcl/hcl/ast"
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/gohcl"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
-	"github.com/hashicorp/terraform/command"
-	"github.com/mitchellh/cli"
+	tf "github.com/hashicorp/terraform/config"
 )
 
 func containsKey(oi *ast.ObjectItem, name string) bool {
@@ -50,22 +51,22 @@ func findModuleSource(module *ast.ObjectItem) (string, string) {
 	return "", ""
 }
 
-func findModuleReferencs(file *ast.File) map[string]string {
+func findModuleReferencs(file *hcl.File) map[string]string {
 	refs := make(map[string]string)
 
-	ol, ok := file.Node.(*ast.ObjectList)
-	if !ok {
-		log.Fatalln("no objectlist")
-	}
+	// ol, ok := file.Node.(*hcl.ObjectList)
+	// if !ok {
+	// 	log.Fatalln("no objectlist")
+	// }
 
-	for _, oi := range ol.Items {
-		for _, key := range oi.Keys {
-			if key.Token.Text == "module" {
-				modName, modSource := findModuleSource(oi)
-				refs[strings.Trim(modName, "\"")] = strings.Trim(modSource, "\"")
-			}
-		}
-	}
+	// for _, oi := range ol.Items {
+	// 	for _, key := range oi.Keys {
+	// 		if key.Token.Text == "module" {
+	// 			modName, modSource := findModuleSource(oi)
+	// 			refs[strings.Trim(modName, "\"")] = strings.Trim(modSource, "\"")
+	// 		}
+	// 	}
+	// }
 
 	return refs
 }
@@ -110,13 +111,21 @@ func main() {
 		checkError(err)
 
 		log.Printf("Parsing %s", filename)
-		fileast, err := hcl.ParseBytes(content)
-		checkError(err)
+		// fileast, err := hcl.ParseBytes(content)
+		// checkError(err)
 
-		file, diags := hclsyntax.ParseConfig(content, filename, hcl.Pos{Line: 1, Column: 1})
+		// https://github.com/hashicorp/terraform/blob/v0.12.21/config/loader_hcl2.go
+		fileast, diags := hclsyntax.ParseConfig(content, filename, hcl.Pos{Line: 1, Column: 1})
+		log.Printf("Diags %v", diags)
 
-		// refs := findModuleReferencs(fileast)
-		refs := make(map[string]string)
+		// https://github.com/hashicorp/terraform/blob/v0.12.21/config/config.go
+		var target tf.Config
+		diags = gohcl.DecodeBody(fileast.Body, nil, &target)
+		log.Printf("Diags %v", diags)
+		log.Printf("Target %v", target)
+
+		refs := findModuleReferencs(fileast)
+		// refs := make(map[string]string)
 
 		// fmt.Printf("%s -> %s\n", filename, refs)
 
@@ -137,12 +146,12 @@ func main() {
 
 	fmt.Printf("File graph: %s\n", refmap)
 
-	ui := new(cli.MockUi)
-	plan := &command.PlanCommand{
-		Meta: command.Meta{
-			Ui: ui,
-		},
-	}
+	// ui := new(cli.MockUi)
+	// plan := &command.PlanCommand{
+	// 	Meta: command.Meta{
+	// 		Ui: ui,
+	// 	},
+	// }
 
 	// os.Chdir("targets/dev")
 	// plan.Run([]string{})

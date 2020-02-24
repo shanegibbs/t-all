@@ -7,4 +7,5 @@ require (
 	github.com/hashicorp/hcl/v2 v2.3.0
 	github.com/hashicorp/terraform v0.12.21
 	github.com/mitchellh/cli v1.0.0
+	honnef.co/go/tools v0.0.0-20190418001031-e561f6794a2a
 )
